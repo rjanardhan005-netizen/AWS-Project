@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>502 Bad Gateway</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 50px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 500px;
+        }
+        .error-code { font-size: 5rem; font-weight: 700; color: #dc3545; }
+        h1 { font-size: 1.5rem; margin: 10px 0; }
+        p { color: #666; margin: 10px 0; line-height: 1.6; }
+        .hint {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        .hint strong { color: #856404; }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">502</div>
+        <h1>Bad Gateway</h1>
+        <p>Nginx could not connect to the upstream service.<br>
+           This usually means the backend service name or port is incorrect.</p>
+        <div class="hint">
+            <strong>🔍 Troubleshooting steps:</strong><br><br>
+            1. Check running containers: <code>docker ps</code><br>
+            2. Check Nginx logs: <code>docker logs nginx-proxy</code><br>
+            3. Inspect Nginx config: <code>docker exec nginx-proxy cat /etc/nginx/conf.d/default.conf</code><br>
+            4. Fix the config and reload: <code>docker exec nginx-proxy nginx -s reload</code>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,126 @@
+# ============================================================
+# Docker Compose - Student Records Application
+# Project 16: Troubleshooting 502 Bad Gateway
+# ============================================================
+#
+# Services:
+#   db        - PostgreSQL 15 database (internal only)
+#   backend   - FastAPI Python API (internal only)
+#   frontend  - React app served by 'serve' (internal only)
+#   nginx     - Reverse proxy (exposed on port 80)
+#
+# Network:
+#   All four services share the 'app-network' bridge network.
+#   Only Nginx is exposed to the host on port 80.
+#   The backend and database are NOT accessible from outside.
+#
+# Volumes:
+#   postgres_data - Persists database files across restarts.
+#
+# Usage:
+#   docker compose up --build -d     # Build and start all
+#   docker compose down              # Stop and remove
+#   docker compose down -v           # Stop, remove, AND delete data
+# ============================================================
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Copy .env.example to .env first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env first}
+      POSTGRES_DB: ${POSTGRES_DB:?Copy .env.example to .env first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # NOTE: No 'ports' section — PostgreSQL is NOT exposed to the host.
+
+  # ── FastAPI Backend ──────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fastapi-backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Copy .env.example to .env first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env first}
+      POSTGRES_DB: ${POSTGRES_DB:?Copy .env.example to .env first}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    # NOTE: No 'ports' section — FastAPI is NOT exposed to the host.
+
+  # ── React Frontend ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react-frontend
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # NOTE: No 'ports' section — React is NOT exposed to the host.
+
+  # ── Nginx Reverse Proxy ─────────────────────────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"   # Only Nginx is exposed to the host!
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# ── Volumes ────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+    # This volume persists PostgreSQL data even if the
+    # container is removed. Use `docker compose down -v`
+    # to delete it if you want a fresh database.
+
+# ── Networks ───────────────────────────────────────────────
+networks:
+  app-network:
+    driver: bridge
+    # All services join this network and can reach each
+    # other by service name (e.g., "backend", "db").

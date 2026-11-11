@@ -498,8 +498,8 @@ container and avoids downtime.
 
 ## 👤 Author
 
-**Student Name:** _(Your Name Here)_
-**Course:** _(Your Course Here)_
+**Student Name:** P Janardhan(99230040729)
+**Course:** AWS-PE
 **Date:** November 2026
 
 ---
